@@ -2,7 +2,7 @@
 
 `vision-camera-remove-background` is a React Native library that integrates with the Vision Camera module to provide face detection functionality. It allows you to easily detect faces in real-time using the front camera and visualize the detected faces on the screen.
 
-If you like this package please give it a ⭐ on [GitHub](https://github.com/nonam4/vision-camera-remove-background).
+If you like this package please give it a ⭐ on [GitHub](https://github.com/Jrh0203/vision-camera-remove-background).
 
 ## 🏗️ Features
 

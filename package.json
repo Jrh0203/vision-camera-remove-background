@@ -1,6 +1,6 @@
 {
   "name": "vision-camera-remove-background",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Frame Processor Plugin to detect faces using MLKit Vision Face Detector for React Native Vision Camera!",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -36,14 +36,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/nonam4/vision-camera-remove-background"
+    "url": "https://github.com/Jrh0203/vision-camera-remove-background"
   },
   "author": "Tarik",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nonam4/vision-camera-remove-background"
+    "url": "https://github.com/Jrh0203/vision-camera-remove-background"
   },
-  "homepage": "https://github.com/nonam4/vision-camera-remove-background",
+  "homepage": "https://github.com/Jrh0203/vision-camera-remove-background",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
