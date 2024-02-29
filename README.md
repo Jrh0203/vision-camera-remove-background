@@ -1,8 +1,8 @@
 ## 📚 Introduction
 
-`react-native-vision-camera-face-detector` is a React Native library that integrates with the Vision Camera module to provide face detection functionality. It allows you to easily detect faces in real-time using the front camera and visualize the detected faces on the screen.
+`vision-camera-remove-background` is a React Native library that integrates with the Vision Camera module to provide face detection functionality. It allows you to easily detect faces in real-time using the front camera and visualize the detected faces on the screen.
 
-If you like this package please give it a ⭐ on [GitHub](https://github.com/nonam4/react-native-vision-camera-face-detector).
+If you like this package please give it a ⭐ on [GitHub](https://github.com/nonam4/vision-camera-remove-background).
 
 ## 🏗️ Features
 
@@ -14,7 +14,7 @@ If you like this package please give it a ⭐ on [GitHub](https://github.com/non
 ## 🧰 Installation
 
 ```bash
-yarn add react-native-vision-camera-face-detector
+yarn add vision-camera-remove-background
 ```
 
 Then you need to add `react-native-worklets-core` plugin to `babel.config.js`. More details [here](https://react-native-vision-camera.com/docs/guides/frame-processors#react-native-worklets-core).
@@ -22,21 +22,22 @@ Then you need to add `react-native-worklets-core` plugin to `babel.config.js`. M
 ## 💡 Usage
 
 Recommended way:
+
 ```jsx
-import { 
-  StyleSheet, 
-  Text, 
-  View 
+import {
+  StyleSheet,
+  Text,
+  View
 } from 'react-native'
-import { 
-  useEffect, 
-  useState 
+import {
+  useEffect,
+  useState
 } from 'react'
 import {useCameraDevice} from 'react-native-vision-camera'
 import {
   Camera,
   DetectionResult
-} from 'react-native-vision-camera-face-detector'
+} from 'vision-camera-remove-background'
 import { Worklets } from 'react-native-worklets-core'
 
 export default function App() {
@@ -51,7 +52,7 @@ export default function App() {
 
   const handleFacesDetection = Worklets.createRunInJsFn( (
     result: DetectionResult
-  ) => { 
+  ) => {
     console.log( 'detection result', result )
   })
 
@@ -73,25 +74,26 @@ export default function App() {
 ```
 
 Or default way:
+
 ```jsx
-import { 
-  StyleSheet, 
-  Text, 
-  View 
+import {
+  StyleSheet,
+  Text,
+  View
 } from 'react-native'
-import { 
-  useEffect, 
-  useState 
+import {
+  useEffect,
+  useState
 } from 'react'
 import {
   Camera,
   useCameraDevice,
   useFrameProcessor
 } from 'react-native-vision-camera'
-import { 
+import {
   detectFaces,
-  DetectionResult 
-} from 'react-native-vision-camera-face-detector'
+  DetectionResult
+} from 'vision-camera-remove-background'
 import { Worklets } from 'react-native-worklets-core'
 
 export default function App() {
@@ -106,7 +108,7 @@ export default function App() {
 
   const handleFacesDetection = Worklets.createRunInJsFn( (
     result: DetectionResult
-  ) => { 
+  ) => {
     console.log( 'detection result', result )
   })
   const frameProcessor = useFrameProcessor((frame) => {
