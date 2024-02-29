@@ -1,282 +1,134 @@
 import VisionCamera
-import Foundation
-import MLKitFaceDetection
-import MLKitVision
-import CoreML
-import UIKit
 import AVFoundation
-import SceneKit
+import CoreMedia
+import Vision
+import CoreImage.CIFilterBuiltins
+
+//extension UIImage {
+//  var base64: String? {
+//    self.jpegData(compressionQuality: 1)?.base64EncodedString()
+//  }
+//}
+
+extension UIImage {
+  var base64: String? {
+    self.pngData()?.base64EncodedString()
+  }
+}
 
 @objc(VisionCameraFaceDetector)
 public class VisionCameraFaceDetector: FrameProcessorPlugin {
-  var context = CIContext(options: nil)
-  var faceDetector: FaceDetector! = nil;
-
-  func initFD(config: [String: Any]!) {
-    let minFaceSize = 0.15
-    let options = FaceDetectorOptions()
-        options.performanceMode = .fast
-        options.landmarkMode = .none
-        options.contourMode = .none
-        options.classificationMode = .none
-        options.minFaceSize = minFaceSize
-        options.isTrackingEnabled = false
-
-    if config?["performanceMode"] as? String == "accurate" {
-      options.performanceMode = .accurate
-    }
-
-    if config?["landmarkMode"] as? String == "all" {
-      options.landmarkMode = .all
-    }
-
-    if config?["contourMode"] as? String == "all" {
-      options.contourMode = .all
-    }
-
-    if config?["classificationMode"] as? String == "all" {
-      options.classificationMode = .all
-    }
-
-    let minFaceSizeParam = config?["minFaceSize"] as? Double
-    if minFaceSizeParam != nil && minFaceSizeParam != minFaceSize {
-      options.minFaceSize = CGFloat(minFaceSizeParam!)
-    }
-
-    if config?["trackingEnabled"] as? Bool == true {
-      options.isTrackingEnabled = true
-    }
-
-    faceDetector = FaceDetector.faceDetector(options: options)
-  }
-
-  func processBoundingBox(from face: Face) -> [String:Any] {
-    let boundingBox = face.frame
-    let x = boundingBox.origin.x
-    let y = boundingBox.origin.y
-    let width = boundingBox.width
-    let height = boundingBox.height
-
-    return [
-      "width": width,
-      "height": height,
-      "top": y,
-      "left": x,
-      "right": x + width,
-      "bottom": y + height,
-      "centerX": boundingBox.midX,
-      "centerY": boundingBox.midY
-    ]
-  }
-
-  func processLandmarks(from face: Face) -> [String:[String: CGFloat?]] {
-    let faceLandmarkTypes = [
-      FaceLandmarkType.leftCheek,
-      FaceLandmarkType.leftEar,
-      FaceLandmarkType.leftEye,
-      FaceLandmarkType.mouthBottom,
-      FaceLandmarkType.mouthLeft,
-      FaceLandmarkType.mouthRight,
-      FaceLandmarkType.noseBase,
-      FaceLandmarkType.rightCheek,
-      FaceLandmarkType.rightEar,
-      FaceLandmarkType.rightEye
-    ]
-
-    let faceLandmarksTypesStrings = [
-      "LEFT_CHEEK",
-      "LEFT_EAR",
-      "LEFT_EYE",
-      "MOUTH_BOTTOM",
-      "MOUTH_LEFT",
-      "MOUTH_RIGHT",
-      "NOSE_BASE",
-      "RIGHT_CHEEK",
-      "RIGHT_EAR",
-      "RIGHT_EYE"
-    ];
-
-    var faceLandMarksTypesMap: [String: [String: CGFloat?]] = [:]
-    for i in 0..<faceLandmarkTypes.count {
-      let landmark = face.landmark(ofType: faceLandmarkTypes[i]);
-      let position = [
-        "x": landmark?.position.x,
-        "y": landmark?.position.y
-      ]
-      faceLandMarksTypesMap[faceLandmarksTypesStrings[i]] = position
-    }
-
-    return faceLandMarksTypesMap
-  }
-
-  func processFaceContours(from face: Face) -> [String:[[String:CGFloat]]] {
-    let faceContoursTypes = [
-      FaceContourType.face,
-      FaceContourType.leftCheek,
-      FaceContourType.leftEye,
-      FaceContourType.leftEyebrowBottom,
-      FaceContourType.leftEyebrowTop,
-      FaceContourType.lowerLipBottom,
-      FaceContourType.lowerLipTop,
-      FaceContourType.noseBottom,
-      FaceContourType.noseBridge,
-      FaceContourType.rightCheek,
-      FaceContourType.rightEye,
-      FaceContourType.rightEyebrowBottom,
-      FaceContourType.rightEyebrowTop,
-      FaceContourType.upperLipBottom,
-      FaceContourType.upperLipTop
-    ]
-
-    let faceContoursTypesStrings = [
-      "FACE",
-      "LEFT_CHEEK",
-      "LEFT_EYE",
-      "LEFT_EYEBROW_BOTTOM",
-      "LEFT_EYEBROW_TOP",
-      "LOWER_LIP_BOTTOM",
-      "LOWER_LIP_TOP",
-      "NOSE_BOTTOM",
-      "NOSE_BRIDGE",
-      "RIGHT_CHEEK",
-      "RIGHT_EYE",
-      "RIGHT_EYEBROW_BOTTOM",
-      "RIGHT_EYEBROW_TOP",
-      "UPPER_LIP_BOTTOM",
-      "UPPER_LIP_TOP"
-    ];
-
-    var faceContoursTypesMap: [String:[[String:CGFloat]]] = [:]
-    for i in 0..<faceContoursTypes.count {
-      let contour = face.contour(ofType: faceContoursTypes[i]);
-      var pointsArray: [[String:CGFloat]] = []
-
-      if let points = contour?.points {
-        for point in points {
-          let currentPointsMap = [
-            "x": point.x,
-            "y": point.y,
-          ]
-
-          pointsArray.append(currentPointsMap)
-        }
-
-        faceContoursTypesMap[faceContoursTypesStrings[i]] = pointsArray
-      }
-    }
-
-    return faceContoursTypesMap
-  }
-
-  func getConfig(withArguments arguments: [AnyHashable: Any]!) -> [String:Any]! {
-    if arguments.count > 0 {
-      let config = arguments.map { dictionary in
-        Dictionary(uniqueKeysWithValues: dictionary.map { (key, value) in
-          (key as? String ?? "", value)
-        })
-      }
-
-      return config
-    }
-
-    return nil
-  }
-
-  func convertFrameToBase64(_ frame: Frame) -> Any! {
-    guard let imageBuffer = CMSampleBufferGetImageBuffer(frame.buffer) else {
-      print("Failed to get CVPixelBuffer!")
-      return nil
-    }
-    let ciImage = CIImage(cvPixelBuffer: imageBuffer)
-
-    guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-      print("Failed to create CGImage!")
-      return nil
-    }
-    let image = UIImage(cgImage: cgImage)
-    let imageData = image.jpegData(compressionQuality: 100)
-
-    return imageData?.base64EncodedString() ?? ""
-  }
-
-  func getOrientationDescription(orientation: UIImage.Orientation) -> String {
-    switch orientation {
-      case .right, .leftMirrored:
-        return "portrait"
-      case .left, .rightMirrored:
-        return "portrait-upside-down"
-      case .up, .downMirrored:
-        return "landscape-left"
-      case .down, .upMirrored:
-        return "landscape-right"
-    }
-  }
-
-  public override func callback(_ frame: Frame, withArguments arguments: [AnyHashable: Any]?) -> Any? {
-    let config = getConfig(withArguments: arguments)
-
-    if faceDetector == nil {
-      initFD(config: config)
-    }
-
-    let image = VisionImage(buffer: frame.buffer)
-    image.orientation = .up
-    var result: [String: Any] = [:]
-    var faceList: [Any] = []
-
-    do {
-      let faces: [Face] = try faceDetector.results(in: image)
-      if (!faces.isEmpty) {
-        for face in faces {
-          var map: [String: Any] = [:]
-
-          if config?["landmarkMode"] as? String == "all" {
-            map["landmarks"] = processLandmarks(from: face)
-          }
-
-          if config?["classificationMode"] as? String == "all" {
-            map["leftEyeOpenProbability"] = face.leftEyeOpenProbability
-            map["rightEyeOpenProbability"] = face.rightEyeOpenProbability
-            map["smilingProbability"] = face.smilingProbability
-          }
-
-          if config?["contourMode"] as? String == "all" {
-            map["contours"] = processFaceContours(from: face)
-          }
-
-          if config?["trackingEnabled"] as? Bool == true {
-            map["trackingId"] = face.trackingID
-          }
-
-          map["rollAngle"] = face.headEulerAngleZ
-          map["pitchAngle"] = face.headEulerAngleX
-          map["yawAngle"] = face.headEulerAngleY
-          map["bounds"] = processBoundingBox(from: face)
-
-          faceList.append(map)
-        }
-      }
-
-      var frameMap: [String: Any] = [:]
-      frameMap["width"] = frame.width
-      frameMap["height"] = frame.height
-      frameMap["orientation"] = getOrientationDescription(orientation: frame.orientation)
-      if config?["convertFrame"] as? Bool == true {
-        frameMap["frameData"] = convertFrameToBase64(frame)
-      }
-
-      result = [
-        "faces": faceList,
-        "frame": frameMap
-      ]
-    } catch let error {
-      print("Error processing face detection: \(error)")
-    }
-
-    return result
-  }
-
-  public override init(proxy: VisionCameraProxyHolder, options: [AnyHashable : Any]! = [:]) {
+  public override init(proxy: VisionCameraProxyHolder, options: [AnyHashable: Any]! = [:]) {
     super.init(proxy: proxy, options: options)
   }
+  
+  private func processVideoFrame(_ framePixelBuffer: CVPixelBuffer)  -> UIImage? {
+    var segmentationRequest = VNGeneratePersonSegmentationRequest()
+    segmentationRequest.qualityLevel = .balanced
+    segmentationRequest.outputPixelFormat = kCVPixelFormatType_OneComponent8
+    
+    let requestHandler = VNSequenceRequestHandler()
+    // Perform the requests on the pixel buffer that contains the video frame.
+    try? requestHandler.perform([segmentationRequest],
+                                on: framePixelBuffer,
+                                orientation: .right)
+    
+    // Get the pixel buffer that contains the mask image.
+    guard let maskPixelBuffer =
+            segmentationRequest.results?.first?.pixelBuffer else { return nil}
+    
+    // Process the images.
+    return blend(original: framePixelBuffer, mask: maskPixelBuffer)
+  }
+  
+  func saveImageAsync(_ image: UIImage, frameIndex: Int) -> String {
+      let fileName = "image-\(frameIndex)" // Constructing filename with frameIndex
+      let url = FileManager.default.temporaryDirectory
+                              .appendingPathComponent(fileName)
+                              .appendingPathExtension("png")
+      
+      // Move the file writing operation to a background queue
+      DispatchQueue.global(qos: .background).async {
+          if let pngData = image.pngData() {
+              do {
+                  try pngData.write(to: url)
+              } catch {
+                  print("Error saving image: \(error)")
+              }
+          }
+      }
+      
+      // Return the URL path immediately, without waiting for the async operation
+      return url.path
+  }
+
+  
+  private func blend(original framePixelBuffer: CVPixelBuffer,
+                     mask maskPixelBuffer: CVPixelBuffer)  -> UIImage? {
+    
+    
+    // Create CIImage objects for the video frame and the segmentation mask.
+    let originalImage = CIImage(cvPixelBuffer: framePixelBuffer).oriented(.right)
+    var maskImage = CIImage(cvPixelBuffer: maskPixelBuffer)
+    
+    // Scale the mask image to fit the bounds of the video frame.
+    let scaleX = originalImage.extent.width / maskImage.extent.width
+    let scaleY = originalImage.extent.height / maskImage.extent.height
+    maskImage = maskImage.transformed(by: .init(scaleX: scaleX, y: scaleY))
+    
+    
+    // Blend the original, background, and mask images.
+    let blendFilter = CIFilter.blendWithRedMask()
+    blendFilter.inputImage = originalImage
+    //        blendFilter.backgroundImage = backgroundImage
+    blendFilter.maskImage = maskImage
+    
+    // Set the new, blended image as current.
+    var currentCIImage = blendFilter.outputImage?.oriented(.left)
+    
+    let context = CIContext(options: nil)
+
+    guard let currentCIImage = currentCIImage else { return nil }
+
+    // Calculate the center, square crop dimensions.
+    let contextSize = currentCIImage.extent.size
+    let sideLength = min(contextSize.width, contextSize.height)
+    let xOffset = (contextSize.width - sideLength) / 2.0
+    let yOffset = (contextSize.height - sideLength) / 2.0
+    let cropSquare = CGRect(x: xOffset, y: yOffset, width: sideLength, height: sideLength)
+
+    // Create a cropped CIImage.
+    let croppedCIImage = currentCIImage.cropped(to: cropSquare);
+
+    // Convert the cropped CIImage to CGImage.
+    guard let cgImage = context.createCGImage(croppedCIImage, from: croppedCIImage.extent) else { return nil }
+
+    let output = UIImage(cgImage: cgImage)
+    return output
+  }
+  
+  
+  public override func callback(_ frame: Frame, withArguments arguments: [AnyHashable: Any]?) -> Any? {
+    guard let imageBuffer = CMSampleBufferGetImageBuffer(frame.buffer) else { return "no image buffer" }
+    
+    let frameIndex = arguments?["frameIndex"] as? Int
+    
+    // Since we're in a synchronous function, use Task and continuation to call async function
+    do {
+      let processedImage = try processVideoFrame(imageBuffer)
+      guard let processedImage = processedImage else {
+        return ["error": "Failed to process image"]
+      }
+      
+      let fileOutput = saveImageAsync(processedImage, frameIndex: frameIndex!)
+
+      return ["uri": fileOutput]
+//      let base64String = processedImage.base64
+//      return [base64String]
+//      return [frameIndex]
+    } catch {
+      return ["error": "Error processing image: \(error)"]
+    }
+  }
+  
 }
