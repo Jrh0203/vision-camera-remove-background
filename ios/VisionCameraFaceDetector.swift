@@ -21,8 +21,48 @@ public class VisionCameraFaceDetector: FrameProcessorPlugin {
   public override init(proxy: VisionCameraProxyHolder, options: [AnyHashable: Any]! = [:]) {
     super.init(proxy: proxy, options: options)
   }
+    
+//    private func detectFace(in image: CVPixelBuffer) {
+//        let faceDetectionRequest = VNDetectFaceLandmarksRequest(completionHandler: { (request: VNRequest, error: Error?) in
+//            DispatchQueue.main.async {
+//                if let results = request.results as? [VNFaceObservation], results.count > 0 {
+//                    print("did detect \(results.count) face(s)")
+//                } else {
+//                    print("did not detect any face")
+//                }
+//            }
+//        })
+//        let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: image, orientation: .leftMirrored, options: [:])
+//        try? imageRequestHandler.perform([faceDetectionRequest])
+//    }
+    
+    private func detectFace(in image: CVPixelBuffer) -> Int {
+        let semaphore = DispatchSemaphore(value: 0) // Create a semaphore
+        var faceCount = 0
+
+        let faceDetectionRequest = VNDetectFaceLandmarksRequest { request, error in
+            DispatchQueue.main.async {
+                if let results = request.results as? [VNFaceObservation] {
+                    faceCount = results.count
+                } else {
+                    faceCount = 0
+                }
+                semaphore.signal() // Signal the semaphore once the operation is done
+            }
+        }
+
+        let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: image, orientation: .leftMirrored, options: [:])
+        try? imageRequestHandler.perform([faceDetectionRequest])
+
+        _ = semaphore.wait(timeout: DispatchTime.distantFuture) // Wait for the semaphore to be signaled
+
+        return faceCount
+    }
+
+
   
   private func processVideoFrame(_ framePixelBuffer: CVPixelBuffer)  -> UIImage? {
+    
     var segmentationRequest = VNGeneratePersonSegmentationRequest()
     segmentationRequest.qualityLevel = .balanced
     segmentationRequest.outputPixelFormat = kCVPixelFormatType_OneComponent8
@@ -32,6 +72,7 @@ public class VisionCameraFaceDetector: FrameProcessorPlugin {
     try? requestHandler.perform([segmentationRequest],
                                 on: framePixelBuffer,
                                 orientation: .right)
+    
     
     // Get the pixel buffer that contains the mask image.
     guard let maskPixelBuffer =
@@ -116,13 +157,14 @@ public class VisionCameraFaceDetector: FrameProcessorPlugin {
     // Since we're in a synchronous function, use Task and continuation to call async function
     do {
       let processedImage = try processVideoFrame(imageBuffer)
+        let faceCount = detectFace(in: imageBuffer)
       guard let processedImage = processedImage else {
         return ["error": "Failed to process image"]
       }
       
       let fileOutput = saveImageAsync(processedImage, frameIndex: frameIndex!)
 
-      return ["uri": fileOutput]
+        return ["uri": fileOutput, "numFaces": faceCount]
 //      let base64String = processedImage.base64
 //      return [base64String]
 //      return [frameIndex]
